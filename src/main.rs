@@ -167,58 +167,46 @@ fn gen_predictable_data(bump: &Bump) -> Vec<Basic> {
     x
 }
 
-fn gen_v1(bump: &Bump) -> Vec<Basic> {
-    // generate a vector of random Basic Values
-    let mut x = Vec::new();
+fn gen_v1<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     let basic = Basic::V1(bump.alloc(X::new(37)));
-    for _ in 0..10000 {
-        x.push(basic);
-    }
-    x
+    vec![T::new(basic); 10000]
 }
 
-fn gen_v2(bump: &Bump) -> Vec<Basic> {
-    // generate a vector of random Basic Values
-    let mut x = Vec::new();
+fn gen_v2<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     let basic = Basic::V2(bump.alloc(X::new(37)));
-    for _ in 0..10000 {
-        x.push(basic);
-    }
-    x
+    vec![T::new(basic); 10000]
 }
 
 fn bench_v1_v1(c: &mut Criterion) {
     let mut group = c.benchmark_group("sum_v1_v1");
     let bump = Bump::new();
-    let data = black_box(gen_v1(&bump));
-    let tagged = data.iter().map(|x| LowBits::new(*x)).collect::<Vec<_>>();
-    group.bench_function("low_bits", |b| b.iter(|| sum_v1(&tagged)));
+    let tagged = black_box(gen_v1(&bump));
+    group.bench_function("low_bits", |b| b.iter(|| sum_v1::<LowBits<_>>(&tagged)));
 
-    let tagged = data.iter().map(|x| LowByte::new(*x)).collect::<Vec<_>>();
-    group.bench_function("low_byte", |b| b.iter(|| sum_v1(&tagged)));
+    let tagged = black_box(gen_v1(&bump));
+    group.bench_function("low_byte", |b| b.iter(|| sum_v1::<LowByte<_>>(&tagged)));
 
-    let tagged = data.iter().map(|x| HighBits::new(*x)).collect::<Vec<_>>();
-    group.bench_function("high_bits", |b| b.iter(|| sum_v1(&tagged)));
+    let tagged = black_box(gen_v1(&bump));
+    group.bench_function("high_bits", |b| b.iter(|| sum_v1::<HighBits<_>>(&tagged)));
 
-    let tagged = data.iter().map(|x| HighByte::new(*x)).collect::<Vec<_>>();
-    group.bench_function("high_byte", |b| b.iter(|| sum_v1(&tagged)));
+    let tagged = black_box(gen_v1(&bump));
+    group.bench_function("high_byte", |b| b.iter(|| sum_v1::<HighByte<_>>(&tagged)));
 }
 
 fn bench_v2_v2(c: &mut Criterion) {
     let mut group = c.benchmark_group("sum_v2_v2");
     let bump = Bump::new();
-    let data = black_box(gen_v2(&bump));
-    let tagged = data.iter().map(|x| LowBits::new(*x)).collect::<Vec<_>>();
-    group.bench_function("low_bits", |b| b.iter(|| sum_v2(&tagged)));
+    let tagged = black_box(gen_v2(&bump));
+    group.bench_function("low_bits", |b| b.iter(|| sum_v2::<LowBits<_>>(&tagged)));
 
-    let tagged = data.iter().map(|x| LowByte::new(*x)).collect::<Vec<_>>();
-    group.bench_function("low_byte", |b| b.iter(|| sum_v2(&tagged)));
+    let tagged = black_box(gen_v2(&bump));
+    group.bench_function("low_byte", |b| b.iter(|| sum_v2::<LowByte<_>>(&tagged)));
 
-    let tagged = data.iter().map(|x| HighBits::new(*x)).collect::<Vec<_>>();
-    group.bench_function("high_bits", |b| b.iter(|| sum_v2(&tagged)));
+    let tagged = black_box(gen_v2(&bump));
+    group.bench_function("high_bits", |b| b.iter(|| sum_v2::<HighBits<_>>(&tagged)));
 
-    let tagged = data.iter().map(|x| HighByte::new(*x)).collect::<Vec<_>>();
-    group.bench_function("high_byte", |b| b.iter(|| sum_v2(&tagged)));
+    let tagged = black_box(gen_v2(&bump));
+    group.bench_function("high_byte", |b| b.iter(|| sum_v2::<HighByte<_>>(&tagged)));
 }
 
 fn all_benches(c: &mut Criterion) {
