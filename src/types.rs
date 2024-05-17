@@ -49,56 +49,56 @@ impl<const N: usize> X<N> {
 #[repr(u64)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Basic {
-    V1(*const X<0>) = 0,
-    V2(*const X<7>) = 1,
-    V3(*const X<4>) = 2,
-    V4(*const X<6>) = 3,
-    V5(*const X<2>) = 4,
-    V6(*const X<5>) = 5,
-    V7(*const X<3>) = 6,
-    V8(*const X<1>) = 7,
+    T0(*const X<0>) = 0,
+    T1(*const X<7>) = 1,
+    T2(*const X<4>) = 2,
+    T3(*const X<6>) = 3,
+    T4(*const X<2>) = 4,
+    T5(*const X<5>) = 5,
+    T6(*const X<3>) = 6,
+    T7(*const X<1>) = 7,
 }
 
 impl Taggable for Basic {
     #[inline(always)]
     fn tag(&self) -> u8 {
         match self {
-            Basic::V1(_) => 0,
-            Basic::V2(_) => 1,
-            Basic::V3(_) => 2,
-            Basic::V4(_) => 3,
-            Basic::V5(_) => 4,
-            Basic::V6(_) => 5,
-            Basic::V7(_) => 6,
-            Basic::V8(_) => 7,
+            Basic::T0(_) => 0,
+            Basic::T1(_) => 1,
+            Basic::T2(_) => 2,
+            Basic::T3(_) => 3,
+            Basic::T4(_) => 4,
+            Basic::T5(_) => 5,
+            Basic::T6(_) => 6,
+            Basic::T7(_) => 7,
         }
     }
 
     #[inline(always)]
     fn ptr(&self) -> *const u8 {
         match self {
-            Basic::V1(ptr) => *ptr as *const u8,
-            Basic::V2(ptr) => *ptr as *const u8,
-            Basic::V3(ptr) => *ptr as *const u8,
-            Basic::V4(ptr) => *ptr as *const u8,
-            Basic::V5(ptr) => *ptr as *const u8,
-            Basic::V6(ptr) => *ptr as *const u8,
-            Basic::V7(ptr) => *ptr as *const u8,
-            Basic::V8(ptr) => *ptr as *const u8,
+            Basic::T0(ptr) => *ptr as *const u8,
+            Basic::T1(ptr) => *ptr as *const u8,
+            Basic::T2(ptr) => *ptr as *const u8,
+            Basic::T3(ptr) => *ptr as *const u8,
+            Basic::T4(ptr) => *ptr as *const u8,
+            Basic::T5(ptr) => *ptr as *const u8,
+            Basic::T6(ptr) => *ptr as *const u8,
+            Basic::T7(ptr) => *ptr as *const u8,
         }
     }
 
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         match tag {
-            0 => Basic::V1(ptr as *const X<0>),
-            1 => Basic::V2(ptr as *const X<7>),
-            2 => Basic::V3(ptr as *const X<4>),
-            3 => Basic::V4(ptr as *const X<6>),
-            4 => Basic::V5(ptr as *const X<2>),
-            5 => Basic::V6(ptr as *const X<5>),
-            6 => Basic::V7(ptr as *const X<3>),
-            7 => Basic::V8(ptr as *const X<1>),
+            0 => Basic::T0(ptr as *const X<0>),
+            1 => Basic::T1(ptr as *const X<7>),
+            2 => Basic::T2(ptr as *const X<4>),
+            3 => Basic::T3(ptr as *const X<6>),
+            4 => Basic::T4(ptr as *const X<2>),
+            5 => Basic::T5(ptr as *const X<5>),
+            6 => Basic::T6(ptr as *const X<3>),
+            7 => Basic::T7(ptr as *const X<1>),
             _ => unsafe { unreachable_unchecked() },
         }
     }
