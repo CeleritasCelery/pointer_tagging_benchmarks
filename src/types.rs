@@ -46,7 +46,7 @@ impl<const N: usize> X<N> {
     }
 }
 
-#[repr(u64)]
+#[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Basic {
     T0(*const X<0>) = 0,
@@ -110,7 +110,7 @@ pub struct LowBits<T> {
     tag_type: PhantomData<T>,
 }
 
-impl<T: Taggable> TaggedPointer<T> for LowBits<T> {
+impl TaggedPointer<Basic> for LowBits<Basic> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         let data = (ptr as usize | tag as usize) as *const u8;
@@ -127,17 +127,19 @@ impl<T: Taggable> TaggedPointer<T> for LowBits<T> {
 
     #[inline(always)]
     fn data(&self) -> *const u8 {
-        match self.data as usize & 0b111 {
-            0 => (self.data as usize) as *const u8,
-            1 => (self.data as usize - 1) as *const u8,
-            2 => (self.data as usize - 2) as *const u8,
-            3 => (self.data as usize - 3) as *const u8,
-            4 => (self.data as usize - 4) as *const u8,
-            5 => (self.data as usize - 5) as *const u8,
-            6 => (self.data as usize - 6) as *const u8,
-            7 => (self.data as usize - 7) as *const u8,
-            _ => unsafe { unreachable_unchecked() },
-        }
+        // match self.data as usize & 0b111 {
+        //     0 => (self.data as usize) as *const u8,
+        //     1 => (self.data as usize - 1) as *const u8,
+        //     2 => (self.data as usize - 2) as *const u8,
+        //     3 => (self.data as usize - 3) as *const u8,
+        //     4 => (self.data as usize - 4) as *const u8,
+        //     5 => (self.data as usize - 5) as *const u8,
+        //     6 => (self.data as usize - 6) as *const u8,
+        //     7 => (self.data as usize - 7) as *const u8,
+        //     _ => unsafe { unreachable_unchecked() },
+        // }
+        let lower = self.tag() as usize;
+        (self.data as usize - lower) as *const u8
         // let mask = !0b111;
         // (self.data as usize & mask) as *const u8
     }
@@ -149,7 +151,7 @@ pub struct LowByte<T> {
     tag_type: PhantomData<T>,
 }
 
-impl<T: Taggable> TaggedPointer<T> for LowByte<T> {
+impl TaggedPointer<Basic> for LowByte<Basic> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         let data = (((ptr as usize) << 8) | tag as usize) as *const u8;
@@ -168,6 +170,14 @@ impl<T: Taggable> TaggedPointer<T> for LowByte<T> {
     fn data(&self) -> *const u8 {
         (self.data as usize >> 8) as *const u8
     }
+
+    // #[inline(always)]
+    // fn untag(&self) -> Basic {
+    //     let tag = self.tag();
+    //     let data = self.data();
+
+    //     unsafe { std::mem::transmute::<(u8, *const u8), Basic>((tag, data)) }
+    // }
 }
 
 #[derive(Copy, Clone)]
