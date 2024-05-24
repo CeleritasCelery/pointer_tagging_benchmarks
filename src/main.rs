@@ -130,6 +130,16 @@ fn sum_t2<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
     sum
 }
 
+fn sum_t7<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
+    let mut sum: i32 = 0;
+    for i in x {
+        if let Basic::T7(x) = i.untag() {
+            sum = sum.wrapping_add(unsafe { (*x).data })
+        }
+    }
+    sum
+}
+
 pub fn sum_t1_t2<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
     let mut sum: i32 = 0;
     for i in x {
@@ -168,6 +178,16 @@ fn count_t1<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
     let mut sum: i32 = 0;
     for i in x {
         if matches!(i.untag(), Basic::T1(_)) {
+            sum += 1;
+        }
+    }
+    sum
+}
+
+fn count_t7<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
+    let mut sum: i32 = 0;
+    for i in x {
+        if matches!(i.untag(), Basic::T7(_)) {
             sum += 1;
         }
     }
@@ -260,9 +280,25 @@ fn gen_t1<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     vec![T::new(basic); 10000]
 }
 
+fn gen_t7<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
+    let basic = Basic::T7(bump.alloc(X::new(37)));
+    vec![T::new(basic); 10000]
+}
+
 fn gen_t2<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     let basic = Basic::T2(bump.alloc(X::new(37)));
     vec![T::new(basic); 10000]
+}
+
+fn gen_t0_t1<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
+    let t0 = Basic::T0(bump.alloc(X::new(37)));
+    let t1 = Basic::T1(bump.alloc(X::new(33)));
+    let mut vec = Vec::new();
+    for _ in 0..5000 {
+        vec.push(T::new(t0));
+        vec.push(T::new(t1));
+    }
+    vec
 }
 
 fn gen_t1_t2<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
@@ -286,9 +322,12 @@ fn all_benches(c: &mut Criterion) {
     bench_all!(sum_t0, gen_t0, c);
     bench_all!(sum_t1, gen_t1, c);
     bench_all!(sum_t2, gen_t2, c);
+    bench_all!(sum_t7, gen_t7, c);
     bench_all!(sum_t1_t2, gen_t1_t2, c);
     bench_all!(count_t0, gen_t0, c);
     bench_all!(count_t1, gen_t1, c);
+    bench_all!(count_t7, gen_t7, c);
+    bench_all!(count_t0_t1, gen_t0_t1, c);
     bench_all!(count_t1_t2, gen_t1_t2, c);
     bench_all!(sum_chunk_t0, gen_t0_set, c);
 }
