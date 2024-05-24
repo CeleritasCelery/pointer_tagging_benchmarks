@@ -8,6 +8,27 @@ use criterion::*;
 
 const ILP: usize = 8;
 
+macro_rules! bench_all {
+    ($test:ident, $gen:ident, $c:ident) => {
+        bench_all!($test, $test, $gen, $c);
+    };
+    ($name:ident, $test:ident, $gen:ident, $c:ident) => {{
+        let mut group = $c.benchmark_group(stringify!($name));
+        let bump = Bump::new();
+        let tagged = black_box($gen(&bump));
+        group.bench_function("low_bits", |b| b.iter(|| $test::<LowBits<_>>(&tagged)));
+
+        let tagged = black_box($gen(&bump));
+        group.bench_function("low_byte", |b| b.iter(|| $test::<LowByte<_>>(&tagged)));
+
+        let tagged = black_box($gen(&bump));
+        group.bench_function("high_bits", |b| b.iter(|| $test::<HighBits<_>>(&tagged)));
+
+        let tagged = black_box($gen(&bump));
+        group.bench_function("high_byte", |b| b.iter(|| $test::<HighByte<_>>(&tagged)));
+    }};
+}
+
 #[inline(never)]
 pub fn sum_byte(x: &[LowByte<Basic>]) -> i32 {
     let mut sum: i32 = 0;
@@ -239,6 +260,11 @@ fn gen_t1<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     vec![T::new(basic); 10000]
 }
 
+fn gen_t2<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
+    let basic = Basic::T2(bump.alloc(X::new(37)));
+    vec![T::new(basic); 10000]
+}
+
 fn gen_t1_t2<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     let t1 = Basic::T1(bump.alloc(X::new(37)));
     let t2 = Basic::T2(bump.alloc(X::new(33)));
@@ -256,170 +282,23 @@ fn gen_t0_set<T: TaggedPointer<Basic> + Copy>(bump: &Bump) -> Vec<[T; 8]> {
     vec![array; 10000]
 }
 
-fn bench_sum_t0(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sum_t0");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("low_bits", |b| b.iter(|| sum_t0::<LowBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("low_byte", |b| b.iter(|| sum_t0::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("high_bits", |b| b.iter(|| sum_t0::<HighBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("high_byte", |b| b.iter(|| sum_t0::<HighByte<_>>(&tagged)));
-}
-
-fn bench_count_t0(c: &mut Criterion) {
-    let mut group = c.benchmark_group("count_t0");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("low_bits", |b| b.iter(|| count_t0::<LowBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("low_byte", |b| b.iter(|| count_t0::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("high_bits", |b| b.iter(|| count_t0::<HighBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t0(&bump));
-    group.bench_function("high_byte", |b| b.iter(|| count_t0::<HighByte<_>>(&tagged)));
-}
-
-fn bench_count_t1(c: &mut Criterion) {
-    let mut group = c.benchmark_group("count_t1");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("low_bits", |b| b.iter(|| count_t1::<LowBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("low_byte", |b| b.iter(|| count_t1::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("high_bits", |b| b.iter(|| count_t1::<HighBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("high_byte", |b| b.iter(|| count_t1::<HighByte<_>>(&tagged)));
-}
-
-fn bench_count_t1_t2(c: &mut Criterion) {
-    let mut group = c.benchmark_group("count_t1_t2");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t1_t2(&bump));
-    group.bench_function("low_bits", |b| b.iter(|| count_t1_t2::<LowBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("low_byte", |b| b.iter(|| count_t1_t2::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("high_bits", |b| b.iter(|| count_t1_t2::<HighBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("high_byte", |b| b.iter(|| count_t1_t2::<HighByte<_>>(&tagged)));
-}
-
-fn bench_sum_t1(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sum_t1");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("low_bits", |b| b.iter(|| sum_t1::<LowBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("low_byte", |b| b.iter(|| sum_t1::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("high_bits", |b| b.iter(|| sum_t1::<HighBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1(&bump));
-    group.bench_function("high_byte", |b| b.iter(|| sum_t1::<HighByte<_>>(&tagged)));
-}
-
-fn bench_sum_t2(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sum_t2");
-    let x = X::new(37);
-    let basic = Basic::T2(&x);
-    let tagged = black_box(gen_tagged(basic));
-    group.bench_function("low_bits", |b| b.iter(|| sum_t2::<LowBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_tagged(basic));
-    group.bench_function("low_byte", |b| b.iter(|| sum_t2::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_tagged(basic));
-    group.bench_function("high_bits", |b| b.iter(|| sum_t2::<HighBits<_>>(&tagged)));
-
-    let tagged = black_box(gen_tagged(basic));
-    group.bench_function("high_byte", |b| b.iter(|| sum_t2::<HighByte<_>>(&tagged)));
-}
-
-fn bench_sum_t1_t2(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sum_t1_t2");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t1_t2(&bump));
-    group.bench_function("low_bits", |b| b.iter(|| sum_t1_t2::<LowBits<_>>(&tagged)));
-    group.bench_function("low_bits_raw", |b| {
-        b.iter(|| sum_t1_t2_raw::<LowBits<_>>(&tagged))
-    });
-
-    let tagged = black_box(gen_t1_t2(&bump));
-    group.bench_function("low_byte_raw", |b| {
-        b.iter(|| sum_t1_t2_raw::<LowByte<_>>(&tagged))
-    });
-    group.bench_function("low_byte", |b| b.iter(|| sum_t1_t2::<LowByte<_>>(&tagged)));
-
-    let tagged = black_box(gen_t1_t2(&bump));
-    group.bench_function("high_bits", |b| {
-        b.iter(|| sum_t1_t2::<HighBits<_>>(&tagged))
-    });
-
-    let tagged = black_box(gen_t1_t2(&bump));
-    group.bench_function("high_byte", |b| {
-        b.iter(|| sum_t1_t2::<HighByte<_>>(&tagged))
-    });
-}
-
-fn bench_ilp_t0(c: &mut Criterion) {
-    let mut group = c.benchmark_group("ilp_t0");
-    let bump = Bump::new();
-    let tagged = black_box(gen_t0_set(&bump));
-    group.bench_function("low_bits", |b| {
-        b.iter(|| sum_chunk_t0::<LowBits<_>>(&tagged))
-    });
-
-    let tagged = black_box(gen_t0_set(&bump));
-    group.bench_function("low_byte", |b| {
-        b.iter(|| sum_chunk_t0::<LowByte<_>>(&tagged))
-    });
-
-    let tagged = black_box(gen_t0_set(&bump));
-    group.bench_function("high_bits", |b| {
-        b.iter(|| sum_chunk_t0::<HighBits<_>>(&tagged))
-    });
-
-    let tagged = black_box(gen_t0_set(&bump));
-    group.bench_function("high_byte", |b| {
-        b.iter(|| sum_chunk_t0::<HighByte<_>>(&tagged))
-    });
-}
-
 fn all_benches(c: &mut Criterion) {
-    bench_sum_t0(c);
-    bench_sum_t1(c);
-    bench_sum_t2(c);
-    bench_sum_t1_t2(c);
-    bench_count_t0(c);
-    bench_count_t1(c);
-    bench_count_t1_t2(c);
-    bench_ilp_t0(c);
+    bench_all!(sum_t0, gen_t0, c);
+    bench_all!(sum_t1, gen_t1, c);
+    bench_all!(sum_t2, gen_t2, c);
+    bench_all!(sum_t1_t2, gen_t1_t2, c);
+    bench_all!(count_t0, gen_t0, c);
+    bench_all!(count_t1, gen_t1, c);
+    bench_all!(count_t1_t2, gen_t1_t2, c);
+    bench_all!(sum_chunk_t0, gen_t0_set, c);
 }
 
 criterion_group!(benches, all_benches);
+
 fn main() {
     benches();
     Criterion::default().configure_from_args().final_summary();
 
-    println!("All tests passed");
     let i = &X::new(13);
     let x = LowByte::new(Basic::T1(i));
     black_box(untag_bit0(x));
