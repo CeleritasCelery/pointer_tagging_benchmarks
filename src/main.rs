@@ -167,6 +167,26 @@ pub fn sum_t1_t2_raw<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
     sum
 }
 
+fn call7<T: TaggedPointer<Basic> + Copy>(x: &(Vec<T>, fn(T, T, T, T, T, T, T) -> i32)) -> i32 {
+    let mut sum: i32 = 0;
+    let f = x.1;
+    let x = &x.0;
+    for i in x {
+        sum += f(*i, *i, *i, *i, *i, *i, *i);
+    }
+    sum
+}
+
+fn call8<T: TaggedPointer<Basic> + Copy>(x: &(Vec<T>, fn(T, T, T, T, T, T, T, T) -> i32)) -> i32 {
+    let mut sum: i32 = 0;
+    let f = x.1;
+    let x = &x.0;
+    for i in x {
+        sum += f(*i, *i, *i, *i, *i, *i, *i, *i);
+    }
+    sum
+}
+
 fn count_t0<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
     let mut sum: i32 = 0;
     for i in x {
@@ -301,6 +321,26 @@ fn gen_t0_set<T: TaggedPointer<Basic> + Copy>(bump: &Bump) -> Vec<[T; 8]> {
     vec![array; 10000]
 }
 
+fn gen_t1_call7<T: TaggedPointer<Basic> + Clone + Copy>(
+    bump: &Bump,
+) -> (Vec<T>, fn(T, T, T, T, T, T, T) -> i32) {
+    let basic = Basic::T1(bump.alloc(X::new(37)));
+    (
+        vec![T::new(basic); 10000],
+        black_box(|_, _, _, _, _, _, _| 13),
+    )
+}
+
+fn gen_t1_call8<T: TaggedPointer<Basic> + Clone + Copy>(
+    bump: &Bump,
+) -> (Vec<T>, fn(T, T, T, T, T, T, T, T) -> i32) {
+    let basic = Basic::T1(bump.alloc(X::new(37)));
+    (
+        vec![T::new(basic); 10000],
+        black_box(|_, _, _, _, _, _, _, _| 13),
+    )
+}
+
 fn all_benches(c: &mut Criterion) {
     bench_all!(sum_t0, gen_t0, c);
     bench_all!(sum_t1, gen_t1, c);
@@ -313,6 +353,8 @@ fn all_benches(c: &mut Criterion) {
     bench_all!(count_t0_t1, gen_t0_t1, c);
     bench_all!(count_t1_t2, gen_t1_t2, c);
     bench_all!(sum_chunk_t0, gen_t0_set, c);
+    bench_all!(call7, gen_t1_call7, c);
+    bench_all!(call8, gen_t1_call8, c);
 }
 
 criterion_group!(benches, all_benches);
