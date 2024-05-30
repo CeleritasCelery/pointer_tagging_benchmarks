@@ -32,6 +32,24 @@ macro_rules! bench_all {
     }};
 }
 
+macro_rules! gen {
+    ($name:ident, $variant:ident) => {
+        fn $name<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
+            let basic = Basic::$variant(bump.alloc(X::new(37)));
+            vec![T::new(basic); 10000]
+        }
+    };
+}
+
+gen!(gen_t0, T0);
+gen!(gen_t1, T1);
+gen!(gen_t2, T2);
+gen!(gen_t3, T3);
+gen!(gen_t4, T4);
+gen!(gen_t5, T5);
+gen!(gen_t6, T6);
+gen!(gen_t7, T7);
+
 #[inline(never)]
 pub fn sum_byte(x: &[LowByte<Basic>]) -> i32 {
     let mut sum: i32 = 0;
@@ -52,24 +70,6 @@ pub fn sum_bit(x: &[LowBits<Basic>]) -> i32 {
         }
     }
     sum
-}
-
-#[inline(never)]
-pub fn untag_byte(x: LowByte<Basic>) -> i32 {
-    if let Basic::T0(x) = x.untag() {
-        unsafe { (*x).data }
-    } else {
-        13
-    }
-}
-
-#[inline(never)]
-pub fn untag_bit(x: LowBits<Basic>) -> i32 {
-    if let Basic::T0(x) = x.untag() {
-        unsafe { (*x).data }
-    } else {
-        13
-    }
 }
 
 fn sum_t0<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
@@ -273,26 +273,6 @@ fn gen_tagged<T: TaggedPointer<Basic> + Clone>(basic: Basic) -> Vec<T> {
     vec![T::new(basic); 10000]
 }
 
-fn gen_t0<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
-    let basic = Basic::T0(bump.alloc(X::new(37)));
-    vec![T::new(basic); 10000]
-}
-
-fn gen_t1<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
-    let basic = Basic::T1(bump.alloc(X::new(37)));
-    vec![T::new(basic); 10000]
-}
-
-fn gen_t7<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
-    let basic = Basic::T7(bump.alloc(X::new(37)));
-    vec![T::new(basic); 10000]
-}
-
-fn gen_t2<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
-    let basic = Basic::T2(bump.alloc(X::new(37)));
-    vec![T::new(basic); 10000]
-}
-
 fn gen_t0_t1<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
     let t0 = Basic::T0(bump.alloc(X::new(37)));
     let t1 = Basic::T1(bump.alloc(X::new(33)));
@@ -418,4 +398,22 @@ pub fn untag_raw_2(x: &[LowByte<Basic>]) -> i32 {
         }
     }
     sum
+}
+
+#[inline(never)]
+pub fn untag_byte(x: LowByte<Basic>) -> i32 {
+    if let Basic::T0(x) = x.untag() {
+        unsafe { (*x).data }
+    } else {
+        13
+    }
+}
+
+#[inline(never)]
+pub fn untag_bit(x: LowBits<Basic>) -> i32 {
+    if let Basic::T0(x) = x.untag() {
+        unsafe { (*x).data }
+    } else {
+        13
+    }
 }
