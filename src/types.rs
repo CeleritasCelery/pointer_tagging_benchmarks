@@ -243,3 +243,30 @@ impl<T: Taggable> TaggedPointer<T> for HighByte<T> {
         ((self.data as usize) & mask) as *const u8
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct BaseLine {
+    data: Basic,
+}
+
+impl TaggedPointer<Basic> for BaseLine {
+    #[inline(always)]
+    fn from_raw(ptr: *const u8, tag: u8) -> Self {
+        let data = Basic::from_raw(ptr, tag);
+        Self { data }
+    }
+
+    #[inline(always)]
+    fn tag(&self) -> u8 {
+        self.data.tag()
+    }
+
+    #[inline(always)]
+    fn data(&self) -> *const u8 {
+        self.data.ptr()
+    }
+
+    fn untag(&self) -> Basic {
+        self.data
+    }
+}

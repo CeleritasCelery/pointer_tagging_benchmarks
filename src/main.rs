@@ -26,6 +26,9 @@ macro_rules! bench_all {
 
         let tagged = black_box($gen(&bump));
         group.bench_function("high_byte", |b| b.iter(|| $test::<HighByte<_>>(&tagged)));
+
+        let tagged = black_box($gen(&bump));
+        group.bench_function("baseline", |b| b.iter(|| $test::<types::BaseLine>(&tagged)));
     }};
 }
 
