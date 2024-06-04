@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 use bumpalo::Bump;
+use concat_idents::concat_idents;
 
 mod types;
 use types::*;
@@ -35,34 +36,25 @@ macro_rules! bench_all {
 
 macro_rules! gen {
     ($variant:ident) => {
-        concat_idents::concat_idents!(fn_name = gen_, $variant {
+        concat_idents!(fn_name = gen_, $variant {
             fn fn_name<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
                 let basic = Basic::$variant(bump.alloc(X::new(37)));
                 vec![T::new(basic); 10000]
             }
         });
 
-        concat_idents::concat_idents!(fn_name = sum_, $variant {
+        concat_idents!(fn_name = sum_, $variant {
             fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
-                let mut sum: i32 = 0;
-                for i in x {
-                    if let Basic::$variant(x) = i.untag() {
-                        sum = sum.wrapping_add(unsafe { (*x).data })
-                    }
-                }
-                sum
+                sum(x, |i| match i.untag() {
+                    Basic::$variant(x) => unsafe { (*x).data },
+                    _ => 0,
+                })
             }
         });
 
-        concat_idents::concat_idents!(fn_name = count_, $variant {
+        concat_idents!(fn_name = count_, $variant {
             fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
-                let mut sum: i32 = 0;
-                for i in x {
-                    if matches!(i.untag(), Basic::$variant(_)) {
-                        sum += 1;
-                    }
-                }
-                sum
+                count(x, |i| matches!(i.untag(), Basic::$variant(_)))
             }
         });
     }
@@ -79,7 +71,7 @@ gen!(T7);
 
 macro_rules! gen2 {
     ($var1:ident, $var2:ident) => {
-        concat_idents::concat_idents!(fn_name = gen_, $var1, _, $var2 {
+        concat_idents!(fn_name = gen_, $var1, _, $var2 {
             fn fn_name<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
                 let t0 = Basic::$var1(bump.alloc(X::new(37)));
                 let t1 = Basic::$var2(bump.alloc(X::new(33)));
@@ -92,29 +84,19 @@ macro_rules! gen2 {
             }
         });
 
-        concat_idents::concat_idents!(fn_name = sum_, $var1, _, $var2 {
+        concat_idents!(fn_name = sum_, $var1, _, $var2 {
             fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
-                let mut sum: i32 = 0;
-                for i in x {
-                    match i.untag() {
-                        Basic::$var1(x) => sum = sum.wrapping_add(unsafe { (*x).data }),
-                        Basic::$var2(x) => sum = sum.wrapping_add(unsafe { (*x).data }),
-                        _ => {}
-                    }
-                }
-                sum
+                sum(x, |i| match i.untag() {
+                    Basic::$var1(x) => unsafe { (*x).data },
+                    Basic::$var2(x) => unsafe { (*x).data },
+                    _ => 0,
+                })
             }
         });
 
-        concat_idents::concat_idents!(fn_name = count_, $var1, _, $var2 {
+        concat_idents!(fn_name = count_, $var1, _, $var2 {
             fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
-                let mut sum: i32 = 0;
-                for i in x {
-                    if matches!(i.untag(), Basic::$var1(_) | Basic::$var2(_)) {
-                        sum += 1;
-                    }
-                }
-                sum
+                count(x, |i| matches!(i.untag(), Basic::$var1(_) | Basic::$var2(_)))
             }
         });
     }
@@ -127,7 +109,7 @@ gen2!(T1, T3);
 
 macro_rules! gen3 {
     ($var1:ident, $var2:ident, $var3:ident) => {
-        concat_idents::concat_idents!(fn_name = gen_, $var1, _, $var2, _, $var3 {
+        concat_idents!(fn_name = gen_, $var1, _, $var2, _, $var3 {
             fn fn_name<T: TaggedPointer<Basic> + Clone>(bump: &Bump) -> Vec<T> {
                 let t0 = Basic::$var1(bump.alloc(X::new(37)));
                 let t1 = Basic::$var2(bump.alloc(X::new(33)));
@@ -142,30 +124,20 @@ macro_rules! gen3 {
             }
         });
 
-        concat_idents::concat_idents!(fn_name = sum_, $var1, _, $var2, _, $var3 {
+        concat_idents!(fn_name = sum_, $var1, _, $var2, _, $var3 {
             fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
-                let mut sum: i32 = 0;
-                for i in x {
-                    match i.untag() {
-                        Basic::$var1(x) => sum = sum.wrapping_add(unsafe { (*x).data }),
-                        Basic::$var2(x) => sum = sum.wrapping_add(unsafe { (*x).data }),
-                        Basic::$var3(x) => sum = sum.wrapping_add(unsafe { (*x).data }),
-                        _ => {}
-                    }
-                }
-                sum
+                sum(x, |i| match i.untag() {
+                    Basic::$var1(x) => unsafe { (*x).data },
+                    Basic::$var2(x) => unsafe { (*x).data },
+                    Basic::$var3(x) => unsafe { (*x).data },
+                    _ => 0,
+                })
             }
         });
 
-        concat_idents::concat_idents!(fn_name = count_, $var1, _, $var2, _, $var3 {
+        concat_idents!(fn_name = count_, $var1, _, $var2, _, $var3 {
             fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
-                let mut sum: i32 = 0;
-                for i in x {
-                    if matches!(i.untag(), Basic::$var1(_) | Basic::$var2(_) | Basic::$var3(_)) {
-                        sum += 1;
-                    }
-                }
-                sum
+                count(x, |i| matches!(i.untag(), Basic::$var1(_) | Basic::$var2(_) | Basic::$var3(_)))
             }
         });
     }
@@ -176,23 +148,19 @@ gen3!(T0, T2, T4);
 gen3!(T1, T2, T3);
 gen3!(T1, T3, T5);
 
-#[inline(never)]
-pub fn sum_byte(x: &[LowByte<Basic>]) -> i32 {
-    let mut sum: i32 = 0;
+fn sum<T: TaggedPointer<Basic>>(x: &[T], f: impl Fn(&T) -> i32) -> i32 {
+    let mut sum = 0;
     for i in x {
-        if let Basic::T0(x) = i.untag() {
-            sum = sum.wrapping_add(unsafe { (*x).data })
-        }
+        sum += f(i);
     }
     sum
 }
 
-#[inline(never)]
-pub fn sum_bit(x: &[LowBits<Basic>]) -> i32 {
-    let mut sum: i32 = 0;
+fn count<T: TaggedPointer<Basic>>(x: &[T], f: impl Fn(&T) -> bool) -> i32 {
+    let mut sum = 0;
     for i in x {
-        if let Basic::T0(x) = i.untag() {
-            sum = sum.wrapping_add(unsafe { (*x).data })
+        if f(i) {
+            sum += 1;
         }
     }
     sum
@@ -347,15 +315,26 @@ fn gen_t1_call8<T: TaggedPointer<Basic> + Clone + Copy>(
 fn all_benches(c: &mut Criterion) {
     bench_all!(sum_T0, gen_T0, c);
     bench_all!(sum_T1, gen_T1, c);
-    bench_all!(sum_T0_T1, gen_T0_T1, c);
-    bench_all!(sum_T1_T2, gen_T1_T2, c);
-    bench_all!(sum_T1_T3, gen_T1_T3, c);
     bench_all!(count_T0, gen_T0, c);
     bench_all!(count_T1, gen_T1, c);
     bench_all!(count_T7, gen_T7, c);
+    bench_all!(sum_T0_T1, gen_T0_T1, c);
+    bench_all!(sum_T0_T2, gen_T0_T1, c);
+    bench_all!(sum_T1_T2, gen_T1_T2, c);
+    bench_all!(sum_T1_T3, gen_T1_T3, c);
     bench_all!(count_T0_T1, gen_T0_T1, c);
+    bench_all!(count_T0_T2, gen_T0_T1, c);
     bench_all!(count_T1_T2, gen_T1_T2, c);
-    bench_all!(count_T1_T3, gen_T3, c);
+    bench_all!(count_T1_T3, gen_T1_T3, c);
+    bench_all!(sum_T0_T1_T2, gen_T0_T1_T2, c);
+    bench_all!(sum_T0_T2_T4, gen_T0_T2_T4, c);
+    bench_all!(sum_T1_T2_T3, gen_T1_T2_T3, c);
+    bench_all!(sum_T1_T3_T5, gen_T1_T3_T5, c);
+    bench_all!(count_T0_T1_T2, gen_T0_T1_T2, c);
+    bench_all!(count_T0_T2_T4, gen_T0_T2_T4, c);
+    bench_all!(count_T1_T2_T3, gen_T1_T2_T3, c);
+    bench_all!(count_T1_T3_T5, gen_T1_T3_T5, c);
+
     bench_all!(count_t0_to_t3, gen_T1_T2, c);
     bench_all!(sum_chunk_t0, gen_t0_set, c);
     bench_all!(call7, gen_t1_call7, c);
@@ -463,4 +442,26 @@ pub fn untag_bit(x: LowBits<Basic>) -> i32 {
     } else {
         13
     }
+}
+
+#[inline(never)]
+pub fn sum_byte(x: &[LowByte<Basic>]) -> i32 {
+    let mut sum: i32 = 0;
+    for i in x {
+        if let Basic::T0(x) = i.untag() {
+            sum = sum.wrapping_add(unsafe { (*x).data })
+        }
+    }
+    sum
+}
+
+#[inline(never)]
+pub fn sum_bit(x: &[LowBits<Basic>]) -> i32 {
+    let mut sum: i32 = 0;
+    for i in x {
+        if let Basic::T0(x) = i.untag() {
+            sum = sum.wrapping_add(unsafe { (*x).data })
+        }
+    }
+    sum
 }
