@@ -49,14 +49,34 @@ impl<const N: usize> X<N> {
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Basic {
+    // T0(*const X<0>) = 0,
+    // T1(*const X<7>) = 1,
+    // T2(*const X<4>) = 2,
+    // T3(*const X<6>) = 3,
+    // T4(*const X<2>) = 4,
+    // T5(*const X<5>) = 5,
+    // T6(*const X<3>) = 6,
+    // T7(*const X<1>) = 7,
     T0(*const X<0>) = 0,
-    T1(*const X<7>) = 1,
-    T2(*const X<4>) = 2,
-    T3(*const X<6>) = 3,
-    T4(*const X<2>) = 4,
-    T5(*const X<5>) = 5,
-    T6(*const X<3>) = 6,
-    T7(*const X<1>) = 7,
+    T1(*const X<0>) = 1,
+    T2(*const X<0>) = 2,
+    T3(*const X<0>) = 3,
+    T4(*const X<0>) = 4,
+    T5(*const X<0>) = 5,
+    T6(*const X<0>) = 6,
+    T7(*const X<0>) = 7,
+}
+
+#[repr(u8)]
+pub enum BasicTag {
+    T0 = 0,
+    T1 = 1,
+    T2 = 2,
+    T3 = 3,
+    T4 = 4,
+    T5 = 5,
+    T6 = 6,
+    T7 = 7,
 }
 
 impl Taggable for Basic {
@@ -91,14 +111,22 @@ impl Taggable for Basic {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         match tag {
+            // 0 => Basic::T0(ptr as *const X<0>),
+            // 1 => Basic::T1(ptr as *const X<7>),
+            // 2 => Basic::T2(ptr as *const X<4>),
+            // 3 => Basic::T3(ptr as *const X<6>),
+            // 4 => Basic::T4(ptr as *const X<2>),
+            // 5 => Basic::T5(ptr as *const X<5>),
+            // 6 => Basic::T6(ptr as *const X<3>),
+            // 7 => Basic::T7(ptr as *const X<1>),
             0 => Basic::T0(ptr as *const X<0>),
-            1 => Basic::T1(ptr as *const X<7>),
-            2 => Basic::T2(ptr as *const X<4>),
-            3 => Basic::T3(ptr as *const X<6>),
-            4 => Basic::T4(ptr as *const X<2>),
-            5 => Basic::T5(ptr as *const X<5>),
-            6 => Basic::T6(ptr as *const X<3>),
-            7 => Basic::T7(ptr as *const X<1>),
+            1 => Basic::T1(ptr as *const X<0>),
+            2 => Basic::T2(ptr as *const X<0>),
+            3 => Basic::T3(ptr as *const X<0>),
+            4 => Basic::T4(ptr as *const X<0>),
+            5 => Basic::T5(ptr as *const X<0>),
+            6 => Basic::T6(ptr as *const X<0>),
+            7 => Basic::T7(ptr as *const X<0>),
             _ => unsafe { unreachable_unchecked() },
         }
     }
@@ -110,7 +138,7 @@ pub struct LowBits<T> {
     tag_type: PhantomData<T>,
 }
 
-impl TaggedPointer<Basic> for LowBits<Basic> {
+impl<T: Taggable> TaggedPointer<T> for LowBits<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         let data = (ptr as usize | tag as usize) as *const u8;
@@ -151,7 +179,7 @@ pub struct LowByte<T> {
     tag_type: PhantomData<T>,
 }
 
-impl TaggedPointer<Basic> for LowByte<Basic> {
+impl<T: Taggable> TaggedPointer<T> for LowByte<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         let data = (((ptr as usize) << 8) | tag as usize) as *const u8;

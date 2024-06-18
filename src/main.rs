@@ -49,6 +49,13 @@ macro_rules! gen {
                     Basic::$variant(x) => unsafe { (*x).data },
                     _ => 0,
                 })
+                // sum(x, |i| {
+                //     const TAG: u8 = (BasicTag::$variant as u8);
+                //     match i.tag() {
+                //         TAG => unsafe { (*i.data().cast::<X<0>>()).data },
+                //         _ => 0,
+                //     }
+                // })
             }
         });
 
@@ -91,6 +98,15 @@ macro_rules! gen2 {
                     Basic::$var2(x) => unsafe { (*x).data },
                     _ => 0,
                 })
+                // sum(x, |i| {
+                //     const TAG1: u8 = (BasicTag::$var1 as u8);
+                //     const TAG2: u8 = (BasicTag::$var2 as u8);
+                //     match i.tag() {
+                //         TAG1 => unsafe { (*i.data().cast::<X<0>>()).data },
+                //         TAG2 => unsafe { (*i.data().cast::<X<0>>()).data },
+                //         _ => 0,
+                //     }
+                // })
             }
         });
 
@@ -132,6 +148,17 @@ macro_rules! gen3 {
                     Basic::$var3(x) => unsafe { (*x).data },
                     _ => 0,
                 })
+                // sum(x, |i| {
+                //     const TAG1: u8 = (BasicTag::$var1 as u8);
+                //     const TAG2: u8 = (BasicTag::$var2 as u8);
+                //     const TAG3: u8 = (BasicTag::$var3 as u8);
+                //     match i.tag() {
+                //         TAG1  => unsafe { (*i.data().cast::<X<0>>()).data },
+                //         TAG2 => unsafe { (*i.data().cast::<X<0>>()).data },
+                //         TAG3 => unsafe { (*i.data().cast::<X<0>>()).data },
+                //         _ => 0,
+                //     }
+                // })
             }
         });
 
@@ -315,6 +342,7 @@ fn gen_t1_call8<T: TaggedPointer<Basic> + Clone + Copy>(
 fn all_benches(c: &mut Criterion) {
     bench_all!(sum_T0, gen_T0, c);
     bench_all!(sum_T1, gen_T1, c);
+    bench_all!(sum_T7, gen_T1, c);
     bench_all!(count_T0, gen_T0, c);
     bench_all!(count_T1, gen_T1, c);
     bench_all!(count_T7, gen_T7, c);
@@ -335,7 +363,6 @@ fn all_benches(c: &mut Criterion) {
     bench_all!(count_T1_T2_T3, gen_T1_T2_T3, c);
     bench_all!(count_T1_T3_T5, gen_T1_T3_T5, c);
 
-    bench_all!(count_t0_to_t3, gen_T1_T2, c);
     bench_all!(sum_chunk_t0, gen_t0_set, c);
     bench_all!(call7, gen_t1_call7, c);
     bench_all!(call8, gen_t1_call8, c);
@@ -358,6 +385,7 @@ fn main() {
     let i = &X::new(13);
     let x = LowBits::new(Basic::T1(i));
     black_box(count_low(black_box(&[x])));
+    black_box(sum_repr(black_box(&[x])));
     let x = HighBits::new(Basic::T1(i));
     black_box(count_high(black_box(&[x])));
 }
@@ -464,4 +492,9 @@ pub fn sum_bit(x: &[LowBits<Basic>]) -> i32 {
         }
     }
     sum
+}
+
+#[inline(never)]
+pub fn sum_repr(x: &[LowBits<Basic>]) -> i32 {
+    sum_T1_T3_T5(x)
 }
