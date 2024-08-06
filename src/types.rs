@@ -141,6 +141,9 @@ pub struct LowBits<T> {
 impl<T: Taggable> TaggedPointer<T> for LowBits<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
+        if ptr as usize & 0b111 != 0 {
+            unsafe { std::hint::unreachable_unchecked(); }
+        }
         let data = (ptr as usize | tag as usize) as *const u8;
         Self {
             data,
