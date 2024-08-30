@@ -141,6 +141,7 @@ pub struct LowBits<T> {
 impl<T: Taggable> TaggedPointer<T> for LowBits<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
+        // Elide
         if ptr as usize & 0b111 != 0 {
             unsafe { std::hint::unreachable_unchecked(); }
         }
@@ -186,6 +187,10 @@ impl<T: Taggable> TaggedPointer<T> for LowByte<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         let data = (((ptr as usize) << 8) | tag as usize) as *const u8;
+        // Elide
+        if (data as usize >> 8) as *const u8 != ptr {
+            unsafe { std::hint::unreachable_unchecked(); }
+        }
         Self {
             data,
             tag_type: PhantomData,
@@ -201,14 +206,6 @@ impl<T: Taggable> TaggedPointer<T> for LowByte<T> {
     fn data(&self) -> *const u8 {
         (self.data as usize >> 8) as *const u8
     }
-
-    // #[inline(always)]
-    // fn untag(&self) -> Basic {
-    //     let tag = self.tag();
-    //     let data = self.data();
-
-    //     unsafe { std::mem::transmute::<(u8, *const u8), Basic>((tag, data)) }
-    // }
 }
 
 #[derive(Copy, Clone)]
@@ -224,8 +221,12 @@ impl<T> HighBits<T> {
 impl<T: Taggable> TaggedPointer<T> for HighBits<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
-        let ptr = (ptr as usize) >> 3;
-        let data = (ptr | (tag as usize) << Self::BIT_SHIFT) as *const u8;
+        let shifted_ptr = (ptr as usize) >> 3;
+        let data = (shifted_ptr | (tag as usize) << Self::BIT_SHIFT) as *const u8;
+        // Elide
+        if ((data as usize) << 3) as *const u8 != ptr {
+            unsafe { std::hint::unreachable_unchecked(); }
+        }
         Self {
             data,
             tag_type: PhantomData,
@@ -251,12 +252,17 @@ pub struct HighByte<T> {
 
 impl<T> HighByte<T> {
     const BIT_SHIFT: usize = std::mem::size_of::<*const u8>() * 8 - 8;
+    const MASK: usize = !(0xFF << Self::BIT_SHIFT);
 }
 
 impl<T: Taggable> TaggedPointer<T> for HighByte<T> {
     #[inline(always)]
     fn from_raw(ptr: *const u8, tag: u8) -> Self {
         let data = (ptr as usize | (tag as usize) << Self::BIT_SHIFT) as *const u8;
+        // Elide
+        if ((data as usize) & Self::MASK) as *const u8 != ptr {
+            unsafe { std::hint::unreachable_unchecked(); }
+        }
         Self {
             data,
             tag_type: PhantomData,
@@ -270,8 +276,7 @@ impl<T: Taggable> TaggedPointer<T> for HighByte<T> {
 
     #[inline(always)]
     fn data(&self) -> *const u8 {
-        let mask = !(0xFF << Self::BIT_SHIFT);
-        ((self.data as usize) & mask) as *const u8
+        ((self.data as usize) & Self::MASK) as *const u8
     }
 }
 
@@ -299,5 +304,44 @@ impl TaggedPointer<Basic> for BaseLine {
 
     fn untag(&self) -> Basic {
         self.data
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct NanBoxing<T> {
+    data: *const u8,
+    tag_type: PhantomData<T>,
+}
+
+impl<T> NanBoxing<T> {
+    const QNAN: usize = 0x7ffc000000000000;
+    const MASK: usize = (Self::QNAN | 0b111);
+}
+
+impl<T: Taggable> TaggedPointer<T> for NanBoxing<T> {
+    #[inline(always)]
+    fn from_raw(ptr: *const u8, tag: u8) -> Self {
+        // fill the nan bits with 1 and use the lower 50 bits
+        let data = (ptr as usize | Self::QNAN | tag as usize) as *const u8;
+        if data as usize & !Self::MASK != ptr as usize {
+            unsafe { std::hint::unreachable_unchecked(); }
+        }
+        Self {
+            data,
+            tag_type: PhantomData,
+        }
+    }
+
+    fn tag(&self) -> u8 {
+        if self.data as usize & Self::QNAN == Self::QNAN {
+            self.data as u8 & 0b111
+        } else {
+            9 // invalid value
+        }
+    }
+
+    #[inline(always)]
+    fn data(&self) -> *const u8 {
+        (self.data as usize & !Self::MASK) as *const u8
     }
 }

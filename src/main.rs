@@ -31,6 +31,9 @@ macro_rules! bench_all {
 
         let tagged = black_box($gen(&bump));
         group.bench_function("high_byte", |b| b.iter(|| $test::<HighByte<_>>(&tagged)));
+
+        let tagged = black_box($gen(&bump));
+        group.bench_function("nan_boxing", |b| b.iter(|| $test::<NanBoxing<_>>(&tagged)));
     }};
 }
 
@@ -56,6 +59,15 @@ macro_rules! gen {
                 //         _ => 0,
                 //     }
                 // })
+            }
+        });
+
+        concat_idents!(fn_name = sum_ilp_, $variant {
+            fn fn_name<T: TaggedPointer<Basic>>(x: &[T]) -> i32 {
+                sum_ilp(x, |i| match i.untag() {
+                    Basic::$variant(x) => unsafe { (*x).data },
+                    _ => 0,
+                })
             }
         });
 
@@ -181,6 +193,35 @@ fn sum<T: TaggedPointer<Basic>>(x: &[T], f: impl Fn(&T) -> i32) -> i32 {
         sum += f(i);
     }
     sum
+}
+
+fn gen_values(bump: &Bump) -> Vec<*const u8> {
+    let value = bump.alloc(X::new(37));
+    vec![value as *const X<0> as *const u8; 10000]
+}
+
+fn elide<T: TaggedPointer<Basic>>(source: &[*const u8]) -> i32 {
+    let mut sum = 0;
+    for ptr in source {
+        let tagged = T::from_raw(*ptr, 1);
+        match tagged.untag() {
+            Basic::T1(x) => sum += unsafe {(*x).data },
+            _ => {},
+        }
+    }
+    sum
+}
+
+fn sum_ilp<T: TaggedPointer<Basic>>(x: &[T], f: impl Fn(&T) -> i32) -> i32 {
+    let mut sum1 = 0;
+    let mut sum2 = 0;
+    for i in (0..x.len()).step_by(2) {
+        unsafe {
+            sum1 += f(x.get_unchecked(i));
+            sum2 += f(x.get_unchecked(i + 1));
+        }
+    }
+    sum2 + sum1
 }
 
 fn count<T: TaggedPointer<Basic>>(x: &[T], f: impl Fn(&T) -> bool) -> i32 {
@@ -342,6 +383,7 @@ fn gen_t1_call8<T: TaggedPointer<Basic> + Clone + Copy>(
 fn all_benches(c: &mut Criterion) {
     bench_all!(sum_T0, gen_T0, c);
     bench_all!(sum_T1, gen_T1, c);
+    bench_all!(sum_ilp_T1, gen_T1, c);
     bench_all!(sum_T7, gen_T1, c);
     bench_all!(count_T0, gen_T0, c);
     bench_all!(count_T1, gen_T1, c);
@@ -363,6 +405,7 @@ fn all_benches(c: &mut Criterion) {
     bench_all!(count_T1_T2_T3, gen_T1_T2_T3, c);
     bench_all!(count_T1_T3_T5, gen_T1_T3_T5, c);
 
+    bench_all!(elide, gen_values, c);
     bench_all!(sum_chunk_t0, gen_t0_set, c);
     bench_all!(call7, gen_t1_call7, c);
     bench_all!(call8, gen_t1_call8, c);
